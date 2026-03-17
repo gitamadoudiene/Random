@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎡 Tirage au Sort — 6 Roues de Loterie</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap');
+
+  :root {
+    --bg: #0b0c10;
+    --card: #13151a;
+    --border: rgba(255,255,255,0.07);
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --c-red:    #e63946;
+    --c-green:  #2ec4b6;
+    --c-blue:   #3a86ff;
+    --c-yellow: #ffd166;
+    --c-orange: #f4845f;
+    --c-violet: #c77dff;
+    --glow-red:    0 0 30px rgba(230,57,70,0.45);
+    --glow-green:  0 0 30px rgba(46,196,182,0.45);
+    --glow-blue:   0 0 30px rgba(58,134,255,0.45);
+    --glow-yellow: 0 0 30px rgba(255,209,102,0.45);
+    --glow-orange: 0 0 30px rgba(244,132,95,0.45);
+    --glow-violet: 0 0 30px rgba(199,125,255,0.45);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 999;
+    opacity: 0.6;
+  }
+
+  header {
+    text-align: center;
+    padding: 60px 20px 30px;
+    position: relative;
+  }
+
+  header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.8rem, 7vw, 5rem);
+    letter-spacing: 0.08em;
+    background: linear-gradient(120deg, #fff 20%, #c77dff 50%, #3a86ff 80%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+  }
+
+  header p {
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 0.95rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* Grid of wheels */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 28px;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 20px 24px 60px;
+  }
+
+  /* Wheel card */
+  .wheel-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    transition: transform 0.3s, box-shadow 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .wheel-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    opacity: 0;
+    transition: opacity 0.4s;
+    pointer-events: none;
+  }
+
+  .wheel-card:hover { transform: translateY(-4px); }
+
+  .wheel-card[data-color="red"]    { border-color: rgba(230,57,70,0.3); }
+  .wheel-card[data-color="red"]::after    { background: radial-gradient(ellipse at top, rgba(230,57,70,0.08), transparent 70%); opacity:1; }
+  .wheel-card[data-color="green"]  { border-color: rgba(46,196,182,0.3); }
+  .wheel-card[data-color="green"]::after  { background: radial-gradient(ellipse at top, rgba(46,196,182,0.08), transparent 70%); opacity:1; }
+  .wheel-card[data-color="blue"]   { border-color: rgba(58,134,255,0.3); }
+  .wheel-card[data-color="blue"]::after   { background: radial-gradient(ellipse at top, rgba(58,134,255,0.08), transparent 70%); opacity:1; }
+  .wheel-card[data-color="yellow"] { border-color: rgba(255,209,102,0.3); }
+  .wheel-card[data-color="yellow"]::after { background: radial-gradient(ellipse at top, rgba(255,209,102,0.08), transparent 70%); opacity:1; }
+  .wheel-card[data-color="orange"] { border-color: rgba(244,132,95,0.3); }
+  .wheel-card[data-color="orange"]::after { background: radial-gradient(ellipse at top, rgba(244,132,95,0.08), transparent 70%); opacity:1; }
+  .wheel-card[data-color="violet"] { border-color: rgba(199,125,255,0.3); }
+  .wheel-card[data-color="violet"]::after { background: radial-gradient(ellipse at top, rgba(199,125,255,0.08), transparent 70%); opacity:1; }
+
+  /* Card title */
+  .card-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 0.1em;
+    text-align: center;
+    z-index: 1;
+  }
+
+  .wheel-card[data-color="red"]    .card-title { color: var(--c-red); }
+  .wheel-card[data-color="green"]  .card-title { color: var(--c-green); }
+  .wheel-card[data-color="blue"]   .card-title { color: var(--c-blue); }
+  .wheel-card[data-color="yellow"] .card-title { color: var(--c-yellow); }
+  .wheel-card[data-color="orange"] .card-title { color: var(--c-orange); }
+  .wheel-card[data-color="violet"] .card-title { color: var(--c-violet); }
+
+  /* Canvas wheel */
+  .wheel-wrap {
+    position: relative;
+    width: 240px;
+    height: 240px;
+    z-index: 1;
+    flex-shrink: 0;
+    transition: transform 0.5s cubic-bezier(0.34,1.4,0.64,1);
+  }
+
+  /* Zoom class applied during spin */
+  .wheel-wrap.spinning-zoom {
+    transform: scale(1.18);
+  }
+
+  /* Pulse glow ring around wheel during spin */
+  .wheel-wrap::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.4s;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wheel-wrap.spinning-zoom::before {
+    opacity: 1;
+    animation: ringPulse 0.6s ease-in-out infinite alternate;
+  }
+
+  .wheel-card[data-color="red"]    .wheel-wrap::before { box-shadow: 0 0 40px 12px rgba(230,57,70,0.5); }
+  .wheel-card[data-color="green"]  .wheel-wrap::before { box-shadow: 0 0 40px 12px rgba(46,196,182,0.5); }
+  .wheel-card[data-color="blue"]   .wheel-wrap::before { box-shadow: 0 0 40px 12px rgba(58,134,255,0.5); }
+  .wheel-card[data-color="yellow"] .wheel-wrap::before { box-shadow: 0 0 40px 12px rgba(255,209,102,0.5); }
+  .wheel-card[data-color="orange"] .wheel-wrap::before { box-shadow: 0 0 40px 12px rgba(244,132,95,0.5); }
+  .wheel-card[data-color="violet"] .wheel-wrap::before { box-shadow: 0 0 40px 12px rgba(199,125,255,0.5); }
+
+  @keyframes ringPulse {
+    from { transform: scale(0.97); }
+    to   { transform: scale(1.03); }
+  }
+
+  canvas.wheel-canvas {
+    display: block;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: filter 0.3s;
+    position: relative;
+    z-index: 1;
+  }
+
+  canvas.wheel-canvas:hover { filter: brightness(1.1); }
+
+  /* Pointer / arrow */
+  .pointer {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 11px solid transparent;
+    border-right: 11px solid transparent;
+    border-top: 22px solid #fff;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.8));
+    z-index: 10;
+    transition: transform 0.15s;
+  }
+
+  /* Pointer bounce during spin */
+  .wheel-wrap.spinning-zoom .pointer {
+    animation: pointerBounce 0.18s ease-in-out infinite alternate;
+    transform: translateX(-50%) scaleY(1.3);
+  }
+
+  @keyframes pointerBounce {
+    from { filter: drop-shadow(0 2px 6px rgba(0,0,0,0.8)) brightness(1); }
+    to   { filter: drop-shadow(0 4px 14px rgba(255,255,255,0.6)) brightness(1.8); }
+  }
+
+  /* Result badge */
+  .result-badge {
+    min-height: 46px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 16px;
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #fff;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    transition: all 0.4s;
+    word-break: break-word;
+  }
+
+  .result-badge.popped {
+    animation: pop 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  }
+
+  @keyframes pop {
+    0%   { transform: scale(0.6); opacity: 0; }
+    60%  { transform: scale(1.12); }
+    100% { transform: scale(1);   opacity: 1; }
+  }
+
+  /* ── WINNER SPOTLIGHT OVERLAY ───────────────────── */
+  #winner-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(0,0,0,0.82);
+    backdrop-filter: blur(6px);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 24px;
+    cursor: pointer;
+  }
+
+  #winner-overlay.show {
+    display: flex;
+    animation: overlayIn 0.4s ease forwards;
+  }
+
+  @keyframes overlayIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  #winner-overlay .domain-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(1rem, 3vw, 1.5rem);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    opacity: 0.7;
+  }
+
+  #winner-overlay .winner-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.5rem, 10vw, 7rem);
+    letter-spacing: 0.05em;
+    text-align: center;
+    line-height: 1.1;
+    padding: 0 20px;
+    animation: winnerPop 0.7s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  }
+
+  @keyframes winnerPop {
+    0%   { transform: scale(0.2) rotate(-8deg); opacity: 0; }
+    70%  { transform: scale(1.08) rotate(1deg); opacity: 1; }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+
+  #winner-overlay .trophy-icon {
+    font-size: clamp(3rem, 8vw, 5rem);
+    animation: trophySpin 0.8s ease forwards;
+  }
+
+  @keyframes trophySpin {
+    0%   { transform: rotate(-20deg) scale(0); opacity: 0; }
+    100% { transform: rotate(0deg) scale(1); opacity: 1; }
+  }
+
+  #winner-overlay .close-hint {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 10px;
+    animation: fadeInHint 1.5s 1s ease forwards;
+    opacity: 0;
+  }
+
+  @keyframes fadeInHint {
+    to { opacity: 1; }
+  }
+
+  /* Glow rings behind winner name */
+  #winner-overlay .glow-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    opacity: 0;
+    animation: ringExpand 1.2s ease forwards;
+  }
+
+  @keyframes ringExpand {
+    0%   { width: 50px;  height: 50px;  opacity: 0.8; }
+    100% { width: 600px; height: 600px; opacity: 0; }
+  }
+
+  /* Spin button */
+  .spin-btn {
+    width: 100%;
+    padding: 13px;
+    border-radius: 12px;
+    border: none;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.15rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    z-index: 1;
+    transition: opacity 0.3s, transform 0.15s, box-shadow 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .spin-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.12);
+    transform: translateX(-100%);
+    transition: transform 0.4s;
+  }
+
+  .spin-btn:hover::before { transform: translateX(0); }
+  .spin-btn:active { transform: scale(0.97); }
+  .spin-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .wheel-card[data-color="red"]    .spin-btn { background: var(--c-red);    color: #fff; box-shadow: var(--glow-red); }
+  .wheel-card[data-color="green"]  .spin-btn { background: var(--c-green);  color: #0b0c10; box-shadow: var(--glow-green); }
+  .wheel-card[data-color="blue"]   .spin-btn { background: var(--c-blue);   color: #fff; box-shadow: var(--glow-blue); }
+  .wheel-card[data-color="yellow"] .spin-btn { background: var(--c-yellow); color: #0b0c10; box-shadow: var(--glow-yellow); }
+  .wheel-card[data-color="orange"] .spin-btn { background: var(--c-orange); color: #fff; box-shadow: var(--glow-orange); }
+  .wheel-card[data-color="violet"] .spin-btn { background: var(--c-violet); color: #fff; box-shadow: var(--glow-violet); }
+
+  /* Counter badge */
+  .counter {
+    font-size: 0.75rem;
+    color: var(--muted);
+    z-index: 1;
+  }
+
+  /* History list */
+  .history {
+    width: 100%;
+    z-index: 1;
+  }
+
+  .history summary {
+    font-size: 0.78rem;
+    color: var(--muted);
+    cursor: pointer;
+    user-select: none;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 4px 0;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .history summary::before {
+    content: '▸';
+    transition: transform 0.2s;
+    font-size: 0.7rem;
+  }
+
+  details[open] .history summary::before { transform: rotate(90deg); }
+
+  .history-list {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .history-item {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 9px;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  /* Reset button */
+  .reset-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 14px;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.78rem;
+    cursor: pointer;
+    z-index: 1;
+    transition: color 0.2s, border-color 0.2s;
+    width: 100%;
+  }
+
+  .reset-btn:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
+
+  /* Editable options (violet card) */
+  .edit-area {
+    width: 100%;
+    z-index: 1;
+  }
+
+  .edit-area textarea {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.78rem;
+    resize: vertical;
+    min-height: 80px;
+    line-height: 1.5;
+  }
+
+  .edit-area .edit-hint { font-size: 0.7rem; color: var(--muted); margin-bottom: 5px; }
+
+  .apply-btn {
+    margin-top: 6px;
+    width: 100%;
+    padding: 8px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(199,125,255,0.2);
+    color: var(--c-violet);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .apply-btn:hover { background: rgba(199,125,255,0.35); }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    font-size: 0.82rem;
+    color: var(--muted);
+    padding: 10px 0;
+  }
+
+  /* Confetti canvas */
+  #confetti-canvas {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9998;
+  }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 30px 20px;
+    color: var(--muted);
+    font-size: 0.78rem;
+    border-top: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+
+<!-- Winner spotlight overlay -->
+<div id="winner-overlay" role="dialog" aria-modal="true">
+  <div class="glow-ring" id="glow-ring-1"></div>
+  <div class="trophy-icon">🏆</div>
+  <div class="domain-label" id="overlay-domain"></div>
+  <div class="winner-name" id="overlay-winner"></div>
+  <div class="close-hint">Cliquez pour fermer</div>
+</div>
+
+<canvas id="confetti-canvas"></canvas>
+
+<header>
+  <h1>🎡 Tirage au Sort</h1>
+  <p>Loterie de Sujets — 6 Domaines — Sénégal</p>
+</header>
+
+<div class="grid" id="grid"></div>
+
+<footer>Cliquez sur une roue ou sur le bouton pour lancer le tirage • Options tirées supprimées automatiquement</footer>
+
+<script>
+// ============================================================
+// DONNÉES : 6 roues avec leurs options
+// ============================================================
+const WHEELS = [
+  {
+    id: 'red',
+    label: '🏛 Institutions & Ministères',
+    color: '#e63946',
+    textColor: '#ffffff',
+    options: [
+      'Présidence de la République',
+      'Primature du Sénégal',
+      'Assemblée nationale',
+      'Min. Économie & Finances',
+      'Ministère de l\'Intérieur',
+      'Ministère de la Justice',
+      'Min. Industrie & PME',
+      'DGID Sénégal',
+      'Direction des Douanes',
+      'APIX',
+      'ADIE',
+      'OFNAC',
+      'ANSD',
+      'BCEAO – Sénégal',
+      'ANACIM',
+    ]
+  },
+  {
+    id: 'green',
+    label: '📡 Télécom & Tech',
+    color: '#2ec4b6',
+    textColor: '#0b0c10',
+    options: [
+      'Orange Sénégal',
+      'Free Sénégal',
+      'Expresso Sénégal',
+      'Wave Sénégal',
+      'Sonatel',
+      'SeneGindia',
+      'Atos Sénégal',
+      'InTouch Sénégal',
+      'Jumia Sénégal',
+      'PayDunya',
+      'Jokkolabs',
+      'go-servicesplus Sénégal',
+      'Gomycode senegal',
+      'tgi-sn',
+      'Fesengym Sénégal',
+    ]
+  },
+  {
+    id: 'blue',
+    label: '🏦 Banques, Fintech & Assurance',
+    color: '#3a86ff',
+    textColor: '#ffffff',
+    options: [
+      'CBAO – Attijariwafa',
+      'Société Générale Sénégal',
+      'UBA Sénégal',
+      'Ecobank Sénégal',
+      'Banque Atlantique',
+      'Orabank Sénégal',
+      'BHS Sénégal',
+      'Wizall Money',
+      'Sunu Assurances',
+      'Axa Assurance Sénégal',
+    ]
+  },
+  {
+    id: 'yellow',
+    label: '📰 Médias & News',
+    color: '#ffd166',
+    textColor: '#0b0c10',
+    options: [
+      'Seneweb',
+      'Dakaractu',
+      'Le Soleil',
+      'Sud Quotidien',
+      'Canal+ Sénégal',
+      '2STV',
+      'TFM',
+      'Senego',
+      'PressAfrik',
+      'Jeune Afrique',
+    ]
+  },
+  {
+    id: 'orange',
+    label: '🏭 Industries & Logistique',
+    color: '#f4845f',
+    textColor: '#ffffff',
+    options: [
+      'CFAO Sénégal',
+      'Senelec',
+      'Total Sénégal',
+      'Petrosen',
+      'Nestlé',
+      'deedo.io',
+      'CSS – Compagnie Sucrière',
+      'eggo.sn Sénégal',
+      'samsung',
+      'Sococim Industries',
+    ]
+  },
+  {
+    id: 'violet',
+    label: '✨ Domaine Libre',
+    color: '#c77dff',
+    textColor: '#ffffff',
+    editable: true,
+    options: [
+      'Option A',
+      'Option B',
+      'Option C',
+      'Option D',
+      'Option E',
+      'Option F',
+      'Option G',
+      'Option H',
+      'Option I',
+      'Option J',
+    ]
+  },
+];
+
+// ============================================================
+// STATE par roue
+// ============================================================
+const state = {};
+WHEELS.forEach(w => {
+  state[w.id] = {
+    remaining: [...w.options],
+    history: [],
+    spinning: false,
+    angle: 0,
+  };
+});
+
+// ============================================================
+// AUDIO ENGINE  (Web Audio API — no external files needed)
+// ============================================================
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+// Tick sound: short click for each segment pass
+function playTick(freq = 880, volume = 0.18) {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    gain.gain.setValueAtTime(volume, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.04);
+  } catch(e) {}
+}
+
+// Fanfare: triumphant chord when winner selected
+function playFanfare(color) {
+  try {
+    const ctx = getAudioCtx();
+    const now = ctx.currentTime;
+
+    // Map color to a root note (Hz)
+    const roots = {
+      red: 523.25, green: 587.33, blue: 659.25,
+      yellow: 698.46, orange: 783.99, violet: 880
+    };
+    const root = roots[color] || 523.25;
+
+    // Play a major chord arpeggio
+    [[0,0], [400/1000, 1.26], [700/1000, 1.5], [950/1000, 2]].forEach(([delay, mult]) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const t = now + delay;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(root * mult, t);
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.3, t + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+      osc.start(t);
+      osc.stop(t + 0.55);
+    });
+
+    // Drum hit (noise burst)
+    const bufSize = ctx.sampleRate * 0.15;
+    const buffer = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufSize, 2);
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    const drumGain = ctx.createGain();
+    drumGain.gain.setValueAtTime(0.4, now);
+    drumGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    source.connect(drumGain);
+    drumGain.connect(ctx.destination);
+    source.start(now);
+  } catch(e) {}
+}
+
+// Slow-down tick: plays ticks that decelerate with the wheel
+function startTickTrack(durationMs, onStop) {
+  const ctx = getAudioCtx();
+  const startTime = performance.now();
+  let lastTick = 0;
+  let tickInterval = 60; // ms between ticks at start (fast)
+  let running = true;
+
+  function tick(now) {
+    if (!running) return;
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / durationMs, 1);
+
+    // Interval grows from 60ms → 400ms as wheel slows
+    tickInterval = 60 + 340 * (progress * progress);
+
+    if (now - lastTick > tickInterval) {
+      // Pitch drops as it slows
+      const freq = 1200 - 700 * progress;
+      playTick(freq, 0.12 - 0.06 * progress);
+      lastTick = now;
+    }
+
+    if (progress < 1) {
+      requestAnimationFrame(tick);
+    } else {
+      running = false;
+      onStop && onStop();
+    }
+  }
+
+  requestAnimationFrame(tick);
+
+  return () => { running = false; };
+}
+
+// ============================================================
+// WINNER OVERLAY
+// ============================================================
+const overlay = document.getElementById('winner-overlay');
+const overlayDomain = document.getElementById('overlay-domain');
+const overlayWinner = document.getElementById('overlay-winner');
+const glowRing = document.getElementById('glow-ring-1');
+
+function showWinnerOverlay(winner, domainLabel, color) {
+  overlayDomain.textContent = domainLabel;
+  overlayWinner.textContent = winner;
+  overlayWinner.style.color = color;
+  overlayDomain.style.color = color;
+  glowRing.style.color = color;
+
+  // Reset animations
+  overlayWinner.style.animation = 'none';
+  void overlayWinner.offsetWidth;
+  overlayWinner.style.animation = '';
+
+  glowRing.style.animation = 'none';
+  void glowRing.offsetWidth;
+  glowRing.style.animation = 'ringExpand 1.4s ease forwards';
+
+  overlay.classList.add('show');
+}
+
+overlay.addEventListener('click', () => {
+  overlay.classList.remove('show');
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') overlay.classList.remove('show');
+});
+
+// ============================================================
+// CONFETTI
+// ============================================================
+const confCanvas = document.getElementById('confetti-canvas');
+const confCtx = confCanvas.getContext('2d');
+let particles = [];
+
+function resizeConf() {
+  confCanvas.width = window.innerWidth;
+  confCanvas.height = window.innerHeight;
+}
+resizeConf();
+window.addEventListener('resize', resizeConf);
+
+function spawnConfetti(color) {
+  for (let i = 0; i < 80; i++) {
+    particles.push({
+      x: Math.random() * confCanvas.width,
+      y: -10,
+      vx: (Math.random() - 0.5) * 5,
+      vy: Math.random() * 4 + 2,
+      r: Math.random() * 7 + 3,
+      color,
+      rot: Math.random() * 360,
+      rotV: (Math.random() - 0.5) * 8,
+      life: 1,
+    });
+  }
+}
+
+function animConf() {
+  confCtx.clearRect(0, 0, confCanvas.width, confCanvas.height);
+  particles = particles.filter(p => p.life > 0.01);
+  particles.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.07;
+    p.rot += p.rotV;
+    p.life -= 0.012;
+    confCtx.save();
+    confCtx.globalAlpha = p.life;
+    confCtx.translate(p.x, p.y);
+    confCtx.rotate(p.rot * Math.PI / 180);
+    confCtx.fillStyle = p.color;
+    confCtx.fillRect(-p.r / 2, -p.r / 2, p.r, p.r * 0.5);
+    confCtx.restore();
+  });
+  if (particles.length > 0) requestAnimationFrame(animConf);
+}
+
+// ============================================================
+// DRAW WHEEL
+// ============================================================
+function drawWheel(canvas, wheelDef, remaining, highlightIdx) {
+  const ctx = canvas.getContext('2d');
+  const size = canvas.width;
+  const cx = size / 2, cy = size / 2, r = size / 2 - 4;
+  ctx.clearRect(0, 0, size, size);
+
+  if (remaining.length === 0) {
+    // Empty state
+    ctx.fillStyle = '#1e1f26';
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#4b5563';
+    ctx.font = 'bold 13px DM Sans';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Toutes les options', cx, cy - 10);
+    ctx.fillText('ont été tirées !', cx, cy + 12);
+    return;
+  }
+
+  const n = remaining.length;
+  const arc = (2 * Math.PI) / n;
+
+  // Color variants (shade the main color)
+  function shadeColor(hex, pct) {
+    const num = parseInt(hex.slice(1), 16);
+    const r = Math.min(255, Math.max(0, (num >> 16) + pct));
+    const g = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + pct));
+    const b = Math.min(255, Math.max(0, (num & 0xff) + pct));
+    return `rgb(${r},${g},${b})`;
+  }
+
+  for (let i = 0; i < n; i++) {
+    const startAngle = i * arc;
+    const endAngle = startAngle + arc;
+
+    // Alternate light / dark shade
+    const shade = i % 2 === 0 ? 0 : -35;
+    ctx.fillStyle = shadeColor(wheelDef.color, shade);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, startAngle, endAngle);
+    ctx.closePath();
+    ctx.fill();
+
+    // Highlight winning segment
+    if (i === highlightIdx) {
+      ctx.fillStyle = 'rgba(255,255,255,0.22)';
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r, startAngle, endAngle);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Segment border
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, startAngle, endAngle);
+    ctx.closePath();
+    ctx.stroke();
+
+    // Label
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(startAngle + arc / 2);
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = wheelDef.textColor;
+    ctx.font = `500 ${n > 10 ? 9 : 10}px DM Sans`;
+
+    // Clip text
+    const maxLen = 18;
+    let label = remaining[i];
+    if (label.length > maxLen) label = label.slice(0, maxLen - 1) + '…';
+
+    ctx.fillText(label, r - 8, 0);
+    ctx.restore();
+  }
+
+  // Center circle
+  ctx.beginPath();
+  ctx.arc(cx, cy, 22, 0, Math.PI * 2);
+  ctx.fillStyle = '#0b0c10';
+  ctx.fill();
+  ctx.strokeStyle = wheelDef.color;
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // Center icon
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '14px DM Sans';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('🎡', cx, cy);
+}
+
+// ============================================================
+// SPIN LOGIC
+// ============================================================
+function spinWheel(wheelDef, cardEl, canvasEl, resultEl, counterEl) {
+  const s = state[wheelDef.id];
+  if (s.spinning || s.remaining.length === 0) return;
+  s.spinning = true;
+
+  const spinBtn = cardEl.querySelector('.spin-btn');
+  const wheelWrap = cardEl.querySelector('.wheel-wrap');
+  spinBtn.disabled = true;
+
+  // ── Zoom the wheel in ──
+  wheelWrap.classList.add('spinning-zoom');
+
+  const n = s.remaining.length;
+  const targetIdx = Math.floor(Math.random() * n);
+
+  const arcSize = (2 * Math.PI) / n;
+  const targetAngle = targetIdx * arcSize + arcSize / 2;
+
+  const spins = 5 + Math.floor(Math.random() * 4);
+  const totalRotation = spins * 2 * Math.PI + (2 * Math.PI - targetAngle - Math.PI / 2 - s.angle % (2 * Math.PI));
+
+  const duration = 4500;
+  const start = performance.now();
+  const startAngle = s.angle;
+
+  // ── Start tick soundtrack ──
+  startTickTrack(duration, null);
+
+  function ease(t) {
+    return 1 - Math.pow(1 - t, 3);
+  }
+
+  function frame(now) {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = ease(progress);
+
+    s.angle = startAngle + totalRotation * eased;
+
+    const ctx = canvasEl.getContext('2d');
+    const size = canvasEl.width;
+    const cx = size / 2, cy = size / 2;
+    ctx.clearRect(0, 0, size, size);
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(s.angle);
+    ctx.translate(-cx, -cy);
+    const tmp = document.createElement('canvas');
+    tmp.width = size; tmp.height = size;
+    drawWheel(tmp, wheelDef, s.remaining, progress === 1 ? targetIdx : -1);
+    ctx.drawImage(tmp, 0, 0);
+    ctx.restore();
+
+    if (progress < 1) {
+      requestAnimationFrame(frame);
+    } else {
+      // ── Zoom back ──
+      wheelWrap.classList.remove('spinning-zoom');
+
+      s.spinning = false;
+      const winner = s.remaining[targetIdx];
+
+      s.remaining.splice(targetIdx, 1);
+      s.history.push(winner);
+
+      // Update inline badge
+      resultEl.textContent = '🏆 ' + winner;
+      resultEl.classList.remove('popped');
+      void resultEl.offsetWidth;
+      resultEl.classList.add('popped');
+
+      counterEl.textContent = `${s.remaining.length} option${s.remaining.length !== 1 ? 's' : ''} restante${s.remaining.length !== 1 ? 's' : ''}`;
+
+      s.angle = 0;
+      drawWheel(canvasEl, wheelDef, s.remaining, -1);
+
+      updateHistory(cardEl, s.history);
+
+      // ── Play fanfare ──
+      playFanfare(wheelDef.id);
+
+      // ── Confetti ──
+      spawnConfetti(wheelDef.color);
+      requestAnimationFrame(animConf);
+
+      // ── Show winner overlay (slight delay so fanfare starts first) ──
+      setTimeout(() => {
+        showWinnerOverlay(winner, wheelDef.label, wheelDef.color);
+      }, 120);
+
+      spinBtn.disabled = s.remaining.length === 0;
+      if (s.remaining.length === 0) {
+        spinBtn.textContent = '✅ Toutes tirées';
+      }
+    }
+  }
+
+  requestAnimationFrame(frame);
+}
+
+// ============================================================
+// HISTORY UPDATE
+// ============================================================
+function updateHistory(cardEl, history) {
+  const listEl = cardEl.querySelector('.history-list');
+  listEl.innerHTML = '';
+  history.forEach(h => {
+    const span = document.createElement('span');
+    span.className = 'history-item';
+    span.textContent = h;
+    listEl.appendChild(span);
+  });
+  const detail = cardEl.querySelector('details');
+  if (history.length > 0) {
+    cardEl.querySelector('.history summary').textContent = `▸ Déjà tirés (${history.length})`;
+  }
+}
+
+// ============================================================
+// BUILD UI
+// ============================================================
+const grid = document.getElementById('grid');
+
+WHEELS.forEach(wheelDef => {
+  const card = document.createElement('div');
+  card.className = 'wheel-card';
+  card.dataset.color = wheelDef.id;
+
+  // Prepare canvas
+  const canvasSize = 240;
+  const canvas = document.createElement('canvas');
+  canvas.className = 'wheel-canvas';
+  canvas.width = canvasSize;
+  canvas.height = canvasSize;
+
+  // Result badge
+  const resultBadge = document.createElement('div');
+  resultBadge.className = 'result-badge';
+  resultBadge.textContent = 'Cliquez pour tirer au sort…';
+
+  // Counter
+  const counter = document.createElement('div');
+  counter.className = 'counter';
+  counter.textContent = `${state[wheelDef.id].remaining.length} options disponibles`;
+
+  // Spin button
+  const spinBtn = document.createElement('button');
+  spinBtn.className = 'spin-btn';
+  spinBtn.textContent = '🎲 Lancer le tirage';
+
+  // Wheel wrap with pointer
+  const wheelWrap = document.createElement('div');
+  wheelWrap.className = 'wheel-wrap';
+  const pointer = document.createElement('div');
+  pointer.className = 'pointer';
+  wheelWrap.appendChild(pointer);
+  wheelWrap.appendChild(canvas);
+
+  // History
+  const histDetails = document.createElement('details');
+  histDetails.className = 'history';
+  const histSummary = document.createElement('summary');
+  histSummary.textContent = 'Déjà tirés (0)';
+  const histList = document.createElement('div');
+  histList.className = 'history-list';
+  histDetails.appendChild(histSummary);
+  histDetails.appendChild(histList);
+
+  // Reset button
+  const resetBtn = document.createElement('button');
+  resetBtn.className = 'reset-btn';
+  resetBtn.textContent = '↺ Réinitialiser cette roue';
+
+  // Build card
+  const title = document.createElement('div');
+  title.className = 'card-title';
+  title.textContent = wheelDef.label;
+
+  card.appendChild(title);
+  card.appendChild(wheelWrap);
+  card.appendChild(resultBadge);
+
+  // Editable options for violet
+  if (wheelDef.editable) {
+    const editArea = document.createElement('div');
+    editArea.className = 'edit-area';
+    const hint = document.createElement('div');
+    hint.className = 'edit-hint';
+    hint.textContent = '✏️ Personnalisez les options (une par ligne) :';
+    const textarea = document.createElement('textarea');
+    textarea.value = state[wheelDef.id].remaining.join('\n');
+    const applyBtn = document.createElement('button');
+    applyBtn.className = 'apply-btn';
+    applyBtn.textContent = '✓ Appliquer';
+    applyBtn.onclick = () => {
+      const lines = textarea.value.split('\n').map(l => l.trim()).filter(Boolean);
+      if (lines.length < 2) { alert('Minimum 2 options requises.'); return; }
+      state[wheelDef.id].remaining = [...lines];
+      state[wheelDef.id].history = [];
+      resultBadge.textContent = 'Cliquez pour tirer au sort…';
+      counter.textContent = `${lines.length} options disponibles`;
+      spinBtn.disabled = false;
+      spinBtn.textContent = '🎲 Lancer le tirage';
+      histList.innerHTML = '';
+      histSummary.textContent = 'Déjà tirés (0)';
+      drawWheel(canvas, wheelDef, state[wheelDef.id].remaining, -1);
+    };
+    editArea.appendChild(hint);
+    editArea.appendChild(textarea);
+    editArea.appendChild(applyBtn);
+    card.appendChild(editArea);
+  }
+
+  card.appendChild(counter);
+  card.appendChild(spinBtn);
+  card.appendChild(histDetails);
+  card.appendChild(resetBtn);
+
+  grid.appendChild(card);
+
+  // Draw initial wheel
+  drawWheel(canvas, wheelDef, state[wheelDef.id].remaining, -1);
+
+  // Events
+  spinBtn.addEventListener('click', () => spinWheel(wheelDef, card, canvas, resultBadge, counter));
+  canvas.addEventListener('click', () => spinWheel(wheelDef, card, canvas, resultBadge, counter));
+
+  resetBtn.addEventListener('click', () => {
+    state[wheelDef.id].remaining = [...wheelDef.options];
+    state[wheelDef.id].history = [];
+    state[wheelDef.id].spinning = false;
+    state[wheelDef.id].angle = 0;
+    resultBadge.textContent = 'Cliquez pour tirer au sort…';
+    counter.textContent = `${wheelDef.options.length} options disponibles`;
+    spinBtn.disabled = false;
+    spinBtn.textContent = '🎲 Lancer le tirage';
+    histList.innerHTML = '';
+    histSummary.textContent = 'Déjà tirés (0)';
+    drawWheel(canvas, wheelDef, state[wheelDef.id].remaining, -1);
+  });
+});
+</script>
+</body>
+</html>
